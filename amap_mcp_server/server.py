@@ -560,7 +560,30 @@ def maps_direction_transit_integrated_by_coordinates(origin: str, destination: s
         response.raise_for_status()
         data = response.json()
 
-        print(data)
+        response = requests.get(
+            "https://restapi.amap.com/v3/direction/transit/integrated",
+            params={
+                "key": AMAP_MAPS_API_KEY,
+                "origin": origin,
+                "destination": destination,
+                "city": city,
+                "cityd": cityd,
+            },
+            timeout=(3.05, 15),
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        # MCP stdio 的标准输出只允许承载 JSON-RPC 协议消息。
+        if data.get("status") != "1":
+            return {
+                "error": (
+                    "Direction Transit Integrated failed: "
+                    f"{data.get('info') or data.get('infocode')}"
+                )
+            }
+
+        # print(data)
         if data.get("status") != "1":
             return {"error": f"Direction Transit Integrated failed: {data.get('info') or data.get('infocode')}"}
 
