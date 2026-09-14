@@ -743,16 +743,42 @@ def maps_distance(origins: str, destination: str, type: str = "1") -> Dict[str, 
         return {"error": f"Request failed: {str(e)}"}
 
 @mcp.tool()
-def maps_text_search(keywords: str, city: str = "", citylimit: str = "false") -> Dict[str, Any]:
-    """关键词搜索 API 根据用户输入的关键字进行 POI 搜索，并返回相关的信息"""
+def maps_text_search(
+    keywords: str,
+    city: str = "",
+    citylimit: str = "false",
+    offset: int = 20,
+    page: int = 1,
+    extensions: str = "all",
+) -> Dict[str, Any]:
+    """
+    根据关键词搜索 POI，并返回规划和图片展示需要的扩展字段。
+
+    Args:
+        keywords: POI 搜索关键词。
+        city: 城市名称、城市编码或行政区编码。
+        citylimit: 是否只返回指定城市内的结果。
+        offset: 当前页最多返回的 POI 数量。
+        page: 搜索结果页码。
+        extensions: 返回基本字段或全部扩展字段。
+
+    Returns:
+        包含 POI 列表和城市建议的高德搜索结果。
+    """
     try:
+        safe_offset = max(1, min(int(offset), 25))
+        safe_page = max(1, int(page))
+        safe_extensions = "all" if extensions == "all" else "base"
         response = requests.get(
             "https://restapi.amap.com/v3/place/text",
             params={
                 "key": AMAP_MAPS_API_KEY,
                 "keywords": keywords,
                 "city": city,
-                "citylimit": citylimit
+                "citylimit": citylimit,
+                "offset": safe_offset,
+                "page": safe_page,
+                "extensions": safe_extensions,
             }
         )
         response.raise_for_status()
@@ -768,11 +794,19 @@ def maps_text_search(keywords: str, city: str = "", citylimit: str = "false") ->
                 
         pois = []
         for poi in data.get("pois", []):
+            biz_ext = poi.get("biz_ext") or {}
+            if not isinstance(biz_ext, dict):
+                biz_ext = {}
             pois.append({
                 "id": poi.get("id"),
                 "name": poi.get("name"),
                 "address": poi.get("address"),
-                "typecode": poi.get("typecode")
+                "type": poi.get("type"),
+                "typecode": poi.get("typecode"),
+                "location": poi.get("location"),
+                "tel": poi.get("tel"),
+                "rating": biz_ext.get("rating"),
+                "photos": poi.get("photos") or [],
             })
             
         return {
@@ -819,13 +853,22 @@ def maps_around_search(location: str, radius: str = "1000", keywords: str = "") 
 
 @mcp.tool()
 def maps_search_detail(id: str) -> Dict[str, Any]:
-    """查询关键词搜或者周边搜获取到的POI ID的详细信息"""
+    """
+    查询 POI 详情及照片扩展信息。
+
+    Args:
+        id: 高德 POI ID。
+
+    Returns:
+        包含位置、业务扩展字段和照片的 POI 详情。
+    """
     try:
         response = requests.get(
             "https://restapi.amap.com/v3/place/detail",
             params={
                 "key": AMAP_MAPS_API_KEY,
-                "id": id
+                "id": id,
+                "extensions": "all",
             }
         )
         response.raise_for_status()
@@ -846,7 +889,9 @@ def maps_search_detail(id: str) -> Dict[str, Any]:
             "business_area": poi.get("business_area"),
             "city": poi.get("cityname"),
             "type": poi.get("type"),
-            "alias": poi.get("alias")
+            "alias": poi.get("alias"),
+            "tel": poi.get("tel"),
+            "photos": poi.get("photos") or [],
         }
         
         # Add biz_ext data if available
