@@ -326,7 +326,8 @@ def maps_direction_walking_by_coordinates(origin: str, destination: str) -> Dict
                 "key": AMAP_MAPS_API_KEY,
                 "origin": origin,
                 "destination": destination
-            }
+            },
+            timeout=(3.05, 15),
         )
         response.raise_for_status()
         data = response.json()
@@ -343,11 +344,13 @@ def maps_direction_walking_by_coordinates(origin: str, destination: str) -> Dict
                     "road": step.get("road"),
                     "distance": step.get("distance"),
                     "orientation": step.get("orientation"),
-                    "duration": step.get("duration")
+                    "duration": step.get("duration"),
+                    "polyline": step.get("polyline"),
                 })
             paths.append({
                 "distance": path.get("distance"),
                 "duration": path.get("duration"),
+                "polyline": path.get("polyline"),
                 "steps": steps
             })
             
@@ -438,7 +441,8 @@ def maps_direction_driving_by_coordinates(origin: str, destination: str) -> Dict
                 "key": AMAP_MAPS_API_KEY,
                 "origin": origin,
                 "destination": destination
-            }
+            },
+            timeout=(3.05, 15),
         )
         response.raise_for_status()
         data = response.json()
@@ -455,10 +459,11 @@ def maps_direction_driving_by_coordinates(origin: str, destination: str) -> Dict
                     "road": step.get("road"),
                     "distance": step.get("distance"),
                     "orientation": step.get("orientation"),
-                    "duration": step.get("duration")
+                    "duration": step.get("duration"),
+                    "polyline": step.get("polyline"),
                 })
             paths.append({
-                "path": path.get("path"),
+                "polyline": path.get("polyline"),
                 "distance": path.get("distance"),
                 "duration": path.get("duration"),
                 "steps": steps
@@ -554,19 +559,6 @@ def maps_direction_transit_integrated_by_coordinates(origin: str, destination: s
                 "origin": origin,
                 "destination": destination,
                 "city": city,
-                "cityd": cityd
-            }
-        )
-        response.raise_for_status()
-        data = response.json()
-
-        response = requests.get(
-            "https://restapi.amap.com/v3/direction/transit/integrated",
-            params={
-                "key": AMAP_MAPS_API_KEY,
-                "origin": origin,
-                "destination": destination,
-                "city": city,
                 "cityd": cityd,
             },
             timeout=(3.05, 15),
@@ -623,7 +615,8 @@ def maps_direction_transit_integrated_by_coordinates(origin: str, destination: s
                                         "road": step.get("road"),
                                         "distance": step.get("distance"),
                                         "action": step.get("action"),
-                                        "assistant_action": step.get("assistant_action")
+                                        "assistant_action": step.get("assistant_action"),
+                                        "polyline": step.get("polyline"),
                                     })
 
                         # Safe handling for bus data
@@ -660,6 +653,7 @@ def maps_direction_transit_integrated_by_coordinates(origin: str, destination: s
                                     "arrival_stop": {"name": arr_stop.get("name")},
                                     "distance": busline.get("distance"),
                                     "duration": busline.get("duration"),
+                                    "polyline": busline.get("polyline"),
                                     "via_stops": via_stops
                                 })
 
@@ -689,7 +683,8 @@ def maps_direction_transit_integrated_by_coordinates(origin: str, destination: s
                             "exit": {"name": exit_data.get("name")},
                             "railway": {
                                 "name": railway_data.get("name"),
-                                "trip": railway_data.get("trip")
+                                "trip": railway_data.get("trip"),
+                                "polyline": railway_data.get("polyline"),
                             }
                         })
 
@@ -806,6 +801,10 @@ def maps_text_search(
                 "location": poi.get("location"),
                 "tel": poi.get("tel"),
                 "rating": biz_ext.get("rating"),
+                "cost": biz_ext.get("cost"),
+                "opentime": biz_ext.get("opentime"),
+                "opentime2": biz_ext.get("opentime2"),
+                "business_area": poi.get("business_area"),
                 "photos": poi.get("photos") or [],
             })
             
